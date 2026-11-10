@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Overdrive">
+    <meta name="theme-color" content="#0b0814">
+    <link rel="apple-touch-icon" href="TemplateData/icon-180.png">
+    <link rel="icon" href="TemplateData/icon-180.png">
+    <title>Overdrive — демо</title>
+    <style>
+      html, body { margin: 0; padding: 0; height: 100%; background: #0b0814; overflow: hidden; overscroll-behavior: none; }
+      body { color: #f1edff; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; touch-action: none; -webkit-user-select: none; user-select: none; }
+      #unity-canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; display: block; background: #0b0814; outline: none; }
+      #loader { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; background: #0b0814; z-index: 2; }
+      #loader img { width: 96px; height: 96px; border-radius: 22px; box-shadow: 0 0 40px rgba(255,79,216,.35); }
+      #loader b { font-size: 28px; letter-spacing: .08em; color: #ff8a1f; }
+      #bar { width: min(320px, 70vw); height: 8px; border-radius: 4px; background: #1e1733; overflow: hidden; }
+      #fill { width: 0; height: 100%; background: linear-gradient(90deg, #ff4fd8, #ff8a1f); transition: width .2s; }
+      #note { font-size: 13px; color: #a59cc4; text-align: center; padding: 0 20px; max-width: 420px; }
+      #rotate { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; text-align: center; padding: 24px; background: #0b0814; z-index: 3; font-size: 18px; }
+      @media (orientation: portrait) and (pointer: coarse) { #rotate { display: flex; } }
+      #err { color: #ff6b6b; display: none; }
+    </style>
+  </head>
+  <body>
+    <canvas id="unity-canvas" tabindex="-1"></canvas>
+    <div id="loader">
+      <img src="TemplateData/icon-180.png" alt="">
+      <b>OVERDRIVE</b>
+      <div id="bar"><div id="fill"></div></div>
+      <div id="note">Демо-версия · загрузка… <br>Demo version · loading…</div>
+      <div id="err" style="font-size:13px;text-align:center;padding:0 20px;max-width:420px"></div>
+    </div>
+    <div id="rotate">Поверни телефон горизонтально<br><br>Rotate your phone to landscape</div>
+    <script>
+      // Если браузер отказал в захвате мыши — не роняем игру, просто пишем в консоль
+      (function () {
+        var rpl = HTMLCanvasElement.prototype.requestPointerLock;
+        if (!rpl) return;
+        HTMLCanvasElement.prototype.requestPointerLock = function (o) {
+          try {
+            var p = rpl.call(this, o);
+            if (p && p.catch) p.catch(function (e) { console.log("[OverdriveWeb] pointer lock refused: " + e); });
+            return p;
+          } catch (e) { console.log("[OverdriveWeb] pointer lock refused: " + e); }
+        };
+      })();
+    </script>
+    <script src="Build/overdrive-web.loader.js"></script>
+    <script>
+      var mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
+      var canvas = document.querySelector("#unity-canvas");
+      createUnityInstance(canvas, {
+        arguments: [],
+        dataUrl: "Build/overdrive-web.data.unityweb",
+        frameworkUrl: "Build/overdrive-web.framework.js.unityweb",
+        codeUrl: "Build/overdrive-web.wasm.unityweb",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "EpicShooter",
+        productName: "Overdrive",
+        productVersion: "4.0.9",
+        // На телефоне рисуем в обычной плотности пикселей — так заметно быстрее
+        devicePixelRatio: mobile ? 1 : Math.min(window.devicePixelRatio || 1, 1.5),
+        // Ошибки — в консоль, без всплывающих окон (alert замораживает страницу)
+        showBanner: function (msg, type) { console.log("[OverdriveWeb] " + (type || "info") + ": " + msg); },
+      }, function (p) {
+        document.getElementById("fill").style.width = Math.round(p * 100) + "%";
+      }).then(function () {
+        document.getElementById("loader").style.display = "none";
+        console.log("[OverdriveWeb] loaded");
+      }).catch(function (message) {
+        var e = document.getElementById("err");
+        e.style.display = "block";
+        e.textContent = "Не удалось запустить: " + message;
+        console.log("[OverdriveWeb] error " + message);
+      });
+    </script>
+  </body>
+</html>
